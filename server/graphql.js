@@ -1,5 +1,12 @@
 // @ts-check
 
+const {
+  getAllUsers,
+  getASingleUser,
+
+  createUser,
+} = require("./controller/authapi");
+
 const { GraphQLSchema } = require("graphql");
 const {
   GraphQLList,
@@ -8,7 +15,7 @@ const {
   GraphQLObjectType,
   GraphQLString,
   GraphQLID,
-  ValidationContext,
+  GraphQLInterfaceType,
 } = require("graphql");
 
 const _ = require("lodash");
@@ -40,6 +47,25 @@ const UserType = new GraphQLObjectType({
     password: { type: GraphQLString },
   }),
 });
+// const securityQuestionType = new GraphQLObjectType({
+//   name: "securityQuestion",
+//   fields: () => ({
+//     question: { type: GraphQLString },
+//     answer: { type: GraphQLString },
+//   }),
+
+// });
+const NewUserType = new GraphQLObjectType({
+  name: "NewUser",
+  fields: () => ({
+    id: { type: GraphQLID },
+    email: { type: GraphQLString },
+    name: { type: GraphQLString },
+    password: { type: GraphQLString },
+    securityQuestion: { type: GraphQLString },
+    securityQuestionAnswer: { type: GraphQLString },
+  }),
+});
 
 const RootQuery = new GraphQLObjectType({
   name: "RootQueryType",
@@ -47,17 +73,18 @@ const RootQuery = new GraphQLObjectType({
     user: {
       type: UserType,
       args: { id: { type: GraphQLID } },
-      resolve(parent, args) {
-        console.log(args);
-        return dummyData.find(
-          (data) => data.id.toString() === args.id.toString()
-        );
+      async resolve(parent, args, context) {
+        return getASingleUser(parent, args, context);
+        // console.log(args);
+        // return dummyData.find(
+        //   (data) => data.id.toString() === args.id.toString()
+        // );
       },
     },
     users: {
       type: new GraphQLList(UserType),
-      resolve(parent, args) {
-        return dummyData;
+      async resolve(parent, args, context) {
+        return getAllUsers(parent, args, context);
       },
     },
   }),
@@ -67,31 +94,17 @@ const MutationQuery = new GraphQLObjectType({
   name: "Mutation",
   fields: () => ({
     addUser: {
-      type: UserType,
+      type: NewUserType,
       args: {
         name: { type: GraphQLString },
         email: { type: GraphQLString },
         password: { type: GraphQLString },
+        securityQuestion: { type: GraphQLString },
+        securityQuestionAnswer: { type: GraphQLString },
       },
-      resolve(parent, args, context) {
-        console.log("This is the context ->", context);
-        try {
-          dummyData.push({
-            id: dummyData.length,
-            email: args.email,
-            name: args.name,
-            password: args.password,
-          });
-          console.log(dummyData);
-          return {
-            id: dummyData.length,
-            email: args.email,
-            name: args.name,
-            password: args.password,
-          };
-        } catch (err) {
-          console.log(err);
-        }
+      async resolve(parent, args, context) {
+        // args will return an object consisting of arguments of the graphql request
+        return createUser(parent, args, context);
       },
     },
   }),

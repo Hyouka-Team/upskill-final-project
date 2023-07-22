@@ -13,6 +13,10 @@ const cors = require("cors");
 const app = express();
 const schema = require("./graphql");
 
+// for configing the enviroment variables
+require("dotenv/config");
+
+const startDB = require("./neo4j");
 const { createHandler } = require("graphql-http/lib/use/express");
 
 /**
@@ -25,22 +29,33 @@ const { altairExpress } = require("altair-express-middleware");
  * @param {Object} app the express app needed as an argument for running the server app
  * @param {Object} utils the middlewares or dependencies needed for running the server
  */
-const start = (app, utils) => {
-  const { createHandler, schema, altairExpress } = utils;
-
-  app.use(
-    "/graphql",
-    createHandler({
-      schema,
-      context: {
-        balal: 1234,
-      },
-    })
-  );
+const start = async (app, utils) => {
+  const { createHandler, schema, altairExpress, startDB } = utils;
 
   /**
    * Mount your Altair Grap hQL client
    * */
+  try {
+    const driver = await startDB();
+    // console.log(schema);
+
+    /**
+     * Neccessary middlewares
+     */
+    app.use(
+      "/graphql",
+      createHandler({
+        schema,
+        context: {
+          driver,
+        },
+      })
+    );
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+
   app.use(
     "/altair",
     altairExpress({
@@ -49,8 +64,8 @@ const start = (app, utils) => {
       initialQuery: `{ getData { id name surname } }`,
     })
   );
-  app.listen(4000, () =>
-    console.log(`Server listening on port ${process.env.PORT}!`)
+  app.listen(process.env.PORT || 4000, () =>
+    console.log(`Server listening on port ${process.env.PORT || 4000}!`)
   );
 };
 
@@ -61,4 +76,5 @@ start(app, {
   createHandler,
   schema,
   altairExpress,
+  startDB,
 });
