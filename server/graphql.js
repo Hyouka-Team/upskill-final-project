@@ -3,7 +3,7 @@
 const {
   getAllUsers,
   getASingleUser,
-
+  login,
   createUser,
 } = require("./controller/authapi");
 
@@ -85,6 +85,16 @@ const RootQuery = new GraphQLObjectType({
       type: new GraphQLList(UserType),
       async resolve(parent, args, context) {
         return getAllUsers(parent, args, context);
+      },
+    },
+    login: {
+      type: UserType,
+      args: {
+        email: { type: GraphQLString },
+        password: { type: GraphQLString },
+      },
+      async resolve(parent, args, context) {
+        return login(parent, args, context);
       },
     },
   }),

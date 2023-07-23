@@ -9,7 +9,6 @@
 const express = require("express");
 
 const cors = require("cors");
-
 const app = express();
 const schema = require("./graphql");
 
@@ -23,6 +22,7 @@ const { createHandler } = require("graphql-http/lib/use/express");
  * this is a package for testing the graphql api
  */
 const { altairExpress } = require("altair-express-middleware");
+const { locatedError } = require("graphql");
 
 /**
  * Invoke this function and the server will start
@@ -38,7 +38,6 @@ const start = async (app, utils) => {
   try {
     const driver = await startDB();
     // console.log(schema);
-
     /**
      * Neccessary middlewares
      */
