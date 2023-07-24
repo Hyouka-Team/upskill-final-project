@@ -10,7 +10,8 @@ const express = require("express");
 
 const cors = require("cors");
 const app = express();
-const schema = require("./graphql");
+const schema = require("./schema/graphql");
+const notesSchema = require("./schema/notesSchema");
 
 // for configing the enviroment variables
 require("dotenv/config");
@@ -30,8 +31,9 @@ const { locatedError } = require("graphql");
  * @param {Object} utils the middlewares or dependencies needed for running the server
  */
 const start = async (app, utils) => {
-  const { createHandler, schema, altairExpress, startDB } = utils;
+  const { createHandler, schema, notesSchema, altairExpress, startDB } = utils;
 
+  // console.log("shema", schema);
   /**
    * Mount your Altair Grap hQL client
    * */
@@ -41,10 +43,20 @@ const start = async (app, utils) => {
     /**
      * Neccessary middlewares
      */
-    app.use(
-      "/graphql",
-      createHandler({
+    const middleware = async (req, res, next) => {
+      req.driver = driver;
+      next();
+    };
+    app.use("/graphql", middleware, (req, res) => {
+      return createHandler({
         schema,
+        context: { req, res },
+      })(req, res);
+    });
+    app.use(
+      "/notesAPI",
+      createHandler({
+        schema: notesSchema,
         context: {
           driver,
         },
@@ -63,6 +75,14 @@ const start = async (app, utils) => {
       initialQuery: `{ getData { id name surname } }`,
     })
   );
+  app.use(
+    "/altair1",
+    altairExpress({
+      endpointURL: "/notesAPI",
+      subscriptionsEndpoint: `ws://localhost:4000/subscriptions`,
+      initialQuery: `{ getData { id name surname } }`,
+    })
+  );
   app.listen(process.env.PORT || 4000, () =>
     console.log(`Server listening on port ${process.env.PORT || 4000}!`)
   );
@@ -74,6 +94,7 @@ const start = async (app, utils) => {
 start(app, {
   createHandler,
   schema,
+  notesSchema,
   altairExpress,
   startDB,
 });

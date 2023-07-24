@@ -5,7 +5,7 @@ const {
   getASingleUser,
   login,
   createUser,
-} = require("./controller/authapi");
+} = require("../controller/authapi");
 
 const { GraphQLSchema } = require("graphql");
 const {
