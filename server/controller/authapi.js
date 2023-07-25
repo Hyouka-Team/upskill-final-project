@@ -4,6 +4,15 @@ const { hash, compare } = require("bcryptjs");
 const InvalidInputError = require("../errors/InvalidInputError");
 
 /**
+ * {
+ *  * See {@link getAllUsers}
+ *  * See {@link getASingleUser}
+ *  * See {@link createUser}
+ *  * See {@link login}
+ *  * See {@link tokenRefresh}
+
+ */
+/**
  * validate for password format and email format.
  */
 const {
@@ -128,12 +137,15 @@ const createUser = async (parent, args, context) => {
     // console.log("hi", argumentKey, argumentValue);
 
     if (argumentKey === "password") {
+      console.log("pass error");
       checkForPassword(argumentValue, InvalidInputError);
 
       argumentValue = await hashPassword(argumentValue);
     }
     // to do: turn it to a function
-    argumentKey === "email" && checkForEmail(argumentValue, InvalidInputError);
+    argumentKey === "email" &&
+      checkForEmail(argumentValue, InvalidInputError) &&
+      console.log("email error");
     if (typeof argumentValue === "string") {
       argumentValue = `"${argumentValue}"`;
     }
@@ -147,6 +159,7 @@ const createUser = async (parent, args, context) => {
     }
   }
   console.log("final", createUserProperties);
+  let response = null;
   /** creating a session for requesting to the database */
   try {
     response = await reqToNeo4j(
@@ -157,6 +170,7 @@ const createUser = async (parent, args, context) => {
       {}
     );
   } catch (err) {
+    console.log(err);
     throw InvalidInputError;
   }
   response.records?.forEach((element) => {
@@ -179,7 +193,7 @@ const login = async (parent, args, context) => {
   we use compare method to check equality of args.password and response.password
   then if it was valid we wil make a refresh token and access token
    */
-  const res = [];
+  let res = [];
   const { res: resp, req } = context;
   const { driver } = req;
   console.log("this is arg key array:");
@@ -207,8 +221,8 @@ const login = async (parent, args, context) => {
     const argumentKey = argumentsArray[index];
     // the value mutable because we want to hash the value of password
     let argumentValue = args[argumentKey];
-    console.log("arg", argumentKey);
-    console.log("arg", argumentValue);
+    // console.log("arg", argumentKey);
+    // console.log("arg", argumentValue);
     /** (I) hash password */
     // console.log("hi", argumentKey, argumentValue);
 
@@ -228,7 +242,7 @@ const login = async (parent, args, context) => {
     //   createUserProperties += ",";
     // }
   }
-  console.log(`{${createUserProperties}}`);
+  // console.log(`{${createUserProperties}}`);
   let response;
   /** creating a session for requesting to the database */
   response = await reqToNeo4j(
@@ -238,8 +252,18 @@ const login = async (parent, args, context) => {
     createUserProperties,
     {}
   );
-  console.log(response);
-  console.log("res");
+  console.log("this is records=>", response.records);
+
+  response.records?.forEach((element) => {
+    element.forEach((subElement) => {
+      console.log("this is subelement", subElement);
+      const { name, email, password } = subElement["properties"];
+      res.push({ id: subElement.elementId, email, password });
+    });
+  });
+
+  console.log("This is res", res);
+  // console.log("res");
   /**
      * wont work here, sample structure of record func:
      *   Record {
@@ -252,22 +276,26 @@ const login = async (parent, args, context) => {
     _fieldLookup: { email: 0, password: 1 }
   }
      */
-  // response.records?.forEach((element) => {
-  //   element.forEach((subElement) => {
-  //     // console.log("this is subelement", subElement);
-  //     const { email } = subElement["properties"];
-  //     res.push({ email, password });
-  //   });
-  // console.log("this is a sole element=>", element);
-  // let recordNode = new Object();
-  // });
-  // console.log(res);
   // 1. Find user in array. If not exist send error
-  console.log("args", args, response?.records[0]?._fields[1]);
+  // console.log("args", args, response?.records[0]?._fields[1]);
+  // console.log("it is response", {
+  //   email: response.query,
+  // });
   /*
   order-matters
   */
-  let valid = await compare(args.password, response?.records[0]?._fields[1]);
+  console.log("that's our res");
+  let valid = null;
+  try {
+    valid = await compare(args.password, res[0].password);
+  } catch (error) {
+    /**
+     * if it is not valid it will throw an eeror
+     * Error: Illegal arguments: string, undefined
+     * we can add our cusom error
+     */
+    console.log(error);
+  }
 
   if (!valid) {
     console.log("!pass");
@@ -279,21 +307,79 @@ const login = async (parent, args, context) => {
 
   // 3. Create Refresh- and Accesstoken
   const accesstoken = createAccessToken(args.email);
+
   const refreshtoken = createRefreshToken(args.email);
-  console.log("res const", resp);
+  console.log(accesstoken, refreshtoken);
+  /**
+   * adding refresh token to Database
+   */
+  const addRefreshTokenToDatabase = await reqToNeo4j(
+    "addToken",
+    driver,
+    process.env.DATABASE,
+    {
+      id: res[0].id,
+      refreshToken: refreshtoken,
+    },
+    {}
+  );
+  console.log("refresh token", addRefreshTokenToDatabase);
   resp.cookie("refreshtoken", refreshtoken, {
     httpOnly: true,
     path: "admin/refresh_token",
   });
-  return {
-    email: response?.records[0]?._fields[0],
-    password: refreshtoken,
-  };
+
+  if (res[0] == undefined) {
+    console.log("that's our res", res);
+
+    throw new InvalidInputError();
+  }
+
+  console.log("hi", res[0]);
+  return res[0];
 };
 
+const tokenRefresh = async (parent, args, context) => {
+  const { res, req } = context;
+  const { driver } = req;
+  const token = req.cookies.refreshtoken;
+  // If we don't have a token in our request
+  if (!token) return res.send({ accesstoken: "" });
+  // We have a token, let's verify it!
+  let payload = null;
+  try {
+    payload = verify(token, process.env.REFRESH_TOKEN_SECRET);
+  } catch (err) {
+    return res.send({ accesstoken: "" });
+  }
+  // token is valid, check if user exist
+  const user = await reqToNeo4j(
+    "getNodeByProperties",
+    driver,
+    process.env.DATABASE,
+    {
+      labels: ":user",
+      properties: `email:${payload.userId}`,
+    },
+    {}
+  );
+  if (!user) return { token: "" };
+  // user exist, check if refreshtoken exist on user
+  if (user.refreshtoken !== token) return { token: "" };
+  // token exist, create new Refresh- and accesstoken
+  const accesstoken = createAccessToken(user.id);
+  const refreshtoken = createRefreshToken(user.id);
+  // update refreshtoken on user in db
+  // Could have different versions instead!
+  user.refreshtoken = refreshtoken;
+  // All good to go, send new refreshtoken and accesstoken
+  sendRefreshToken(res, refreshtoken);
+  return res.send({ accesstoken });
+};
 module.exports = {
   getAllUsers,
   getASingleUser,
   createUser,
   login,
+  tokenRefresh,
 };

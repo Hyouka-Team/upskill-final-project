@@ -5,6 +5,7 @@ const {
   getASingleUser,
   login,
   createUser,
+  tokenRefresh,
 } = require("../controller/authapi");
 
 const { GraphQLSchema } = require("graphql");
@@ -66,7 +67,12 @@ const NewUserType = new GraphQLObjectType({
     securityQuestionAnswer: { type: GraphQLString },
   }),
 });
-
+const TokenType = new GraphQLObjectType({
+  name: "TokenRefresh",
+  fields: () => ({
+    tokem: { type: GraphQLString },
+  }),
+});
 const RootQuery = new GraphQLObjectType({
   name: "RootQueryType",
   fields: () => ({
@@ -95,6 +101,12 @@ const RootQuery = new GraphQLObjectType({
       },
       async resolve(parent, args, context) {
         return login(parent, args, context);
+      },
+    },
+    tokenRefresh: {
+      type: TokenType,
+      async resolve(parent, args, context) {
+        return tokenRefresh(parent, args, context);
       },
     },
   }),
