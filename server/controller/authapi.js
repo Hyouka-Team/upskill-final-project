@@ -326,7 +326,7 @@ const login = async (parent, args, context) => {
   console.log("refresh token", addRefreshTokenToDatabase);
   resp.cookie("refreshtoken", refreshtoken, {
     httpOnly: true,
-    path: "admin/refresh_token",
+    path: "notesAPI",
   });
 
   if (res[0] == undefined) {
@@ -336,7 +336,7 @@ const login = async (parent, args, context) => {
   }
 
   console.log("hi", res[0]);
-  return res[0];
+  return { ...res[0], password: accesstoken };
 };
 
 const tokenRefresh = async (parent, args, context) => {

@@ -8,6 +8,8 @@
 
 const express = require("express");
 
+let bodyParser = require("body-parser");
+
 const cors = require("cors");
 const app = express();
 const schema = require("./schema/graphql");
@@ -31,7 +33,15 @@ const { locatedError } = require("graphql");
  * @param {Object} utils the middlewares or dependencies needed for running the server
  */
 const start = async (app, utils) => {
-  const { createHandler, schema, notesSchema, altairExpress, startDB } = utils;
+  const {
+    createHandler,
+    schema,
+    notesSchema,
+    altairExpress,
+    startDB,
+    cors,
+    bodyParser,
+  } = utils;
 
   // console.log("shema", schema);
   /**
@@ -47,6 +57,9 @@ const start = async (app, utils) => {
       req.driver = driver;
       next();
     };
+    app.use(cors());
+    app.use(bodyParser.urlencoded({ extended: false }));
+    app.use(bodyParser.json());
     app.use("/graphql", middleware, (req, res) => {
       return createHandler({
         schema,
@@ -97,4 +110,6 @@ start(app, {
   notesSchema,
   altairExpress,
   startDB,
+  cors,
+  bodyParser,
 });
