@@ -9,12 +9,12 @@
 const express = require("express");
 
 let bodyParser = require("body-parser");
-
+const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const app = express();
 const schema = require("./schema/graphql");
 const notesSchema = require("./schema/notesSchema");
-
+const { isAuth } = require("./middlewares/isAuth");
 // for configing the enviroment variables
 require("dotenv/config");
 
@@ -41,6 +41,8 @@ const start = async (app, utils) => {
     startDB,
     cors,
     bodyParser,
+    cookieParser,
+    isAuth,
   } = utils;
 
   // console.log("shema", schema);
@@ -59,22 +61,19 @@ const start = async (app, utils) => {
     };
     app.use(cors());
     app.use(bodyParser.urlencoded({ extended: false }));
-    app.use(bodyParser.json());
+    app.use(bodyParser.json(), cookieParser());
     app.use("/graphql", middleware, (req, res) => {
       return createHandler({
         schema,
         context: { req, res },
       })(req, res);
     });
-    app.use(
-      "/notesAPI",
-      createHandler({
+    app.use("/notesAPI", isAuth, middleware, (req, res) => {
+      return createHandler({
         schema: notesSchema,
-        context: {
-          driver,
-        },
-      })
-    );
+        context: { req, res },
+      })(req, res);
+    });
   } catch (error) {
     console.log(error);
     return null;
@@ -112,4 +111,6 @@ start(app, {
   startDB,
   cors,
   bodyParser,
+  cookieParser,
+  isAuth,
 });

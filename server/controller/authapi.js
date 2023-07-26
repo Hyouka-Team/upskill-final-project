@@ -1,5 +1,6 @@
 const { error } = require("neo4j-driver");
 const { hash, compare } = require("bcryptjs");
+const { verify } = require("jsonwebtoken");
 
 const InvalidInputError = require("../errors/InvalidInputError");
 
@@ -326,7 +327,7 @@ const login = async (parent, args, context) => {
   console.log("refresh token", addRefreshTokenToDatabase);
   resp.cookie("refreshtoken", refreshtoken, {
     httpOnly: true,
-    path: "notesAPI",
+    path: "graphql",
   });
 
   if (res[0] == undefined) {
@@ -340,41 +341,101 @@ const login = async (parent, args, context) => {
 };
 
 const tokenRefresh = async (parent, args, context) => {
-  const { res, req } = context;
+  const { res: resp, req } = context;
   const { driver } = req;
+  console.log("ITs cookie", req.cookies);
+
   const token = req.cookies.refreshtoken;
   // If we don't have a token in our request
-  if (!token) return res.send({ accesstoken: "" });
-  // We have a token, let's verify it!
+  if (!token) {
+    // if we use this graphql tries to send another res and throws such an error
+
+    /**
+     * 
+     *     return res.json({ accesstoken: "" });
+
+Error [ERR_HTTP_HEADERS_SENT]: Cannot render headers after they are sent to the client
+
+
+     */
+    console.log(token);
+    return { token: "" };
+  }
+  // // We have a token, let's verify it!
   let payload = null;
   try {
     payload = verify(token, process.env.REFRESH_TOKEN_SECRET);
   } catch (err) {
-    return res.send({ accesstoken: "" });
+    return { token: "" };
   }
   // token is valid, check if user exist
+  // we want .tokenRefresh property of a node with email of payload.userId
   const user = await reqToNeo4j(
     "getNodeByProperties",
     driver,
     process.env.DATABASE,
     {
       labels: ":user",
-      properties: `email:${payload.userId}`,
+      propertes: `email:"${payload.userId}"`,
     },
     {}
   );
   if (!user) return { token: "" };
+  // console.log(user);
+  const [prevRefreshToken, userId, userEmail] = [
+    user.records[0]._fields[0].properties.refreshToken,
+    user.records[0]._fields[0].elementId,
+    user.records[0]._fields[0].email,
+  ];
+  console.log(
+    "this is user",
+    user.records[0]._fields[0].properties.refreshToken,
+    user.records[0]._fields[0].elementId
+  );
   // user exist, check if refreshtoken exist on user
-  if (user.refreshtoken !== token) return { token: "" };
-  // token exist, create new Refresh- and accesstoken
-  const accesstoken = createAccessToken(user.id);
-  const refreshtoken = createRefreshToken(user.id);
-  // update refreshtoken on user in db
-  // Could have different versions instead!
-  user.refreshtoken = refreshtoken;
-  // All good to go, send new refreshtoken and accesstoken
-  sendRefreshToken(res, refreshtoken);
-  return res.send({ accesstoken });
+  console.log(
+    "babaharmanem",
+    prevRefreshToken !== token,
+    prevRefreshToken,
+    token
+  );
+  if (prevRefreshToken !== token) return { token: "" };
+  console.log("payload", payload.userId);
+  // // // token exist, create new Refresh- and accesstoken
+  const accesstoken = createAccessToken(payload.userId);
+  const refreshtoken = createRefreshToken(payload.userId);
+  // // // // // update refreshtoken on user in db
+  // // // // Could have different versions instead!
+  console.log(userId);
+  const addRefreshTokenToDatabase = await reqToNeo4j(
+    "addToken",
+    driver,
+    process.env.DATABASE,
+    {
+      id: userId,
+      refreshToken: refreshtoken,
+    },
+    {}
+  );
+  console.log(
+    "salam",
+    addRefreshTokenToDatabase.records[0]?._fields[0]?.properties.email,
+    userEmail,
+    addRefreshTokenToDatabase.records[0]?._fields[0]?.properties?.email ==
+      payload.userId
+  );
+  if (
+    addRefreshTokenToDatabase.records[0]?._fields[0]?.properties?.email ==
+    payload.userId
+  ) {
+    // // All good to go, send new refreshtoken and accesstoken
+    resp.cookie("refreshtoken", refreshtoken, {
+      httpOnly: true,
+      path: "graphql",
+    });
+
+    return { token: accesstoken };
+  }
 };
 module.exports = {
   getAllUsers,

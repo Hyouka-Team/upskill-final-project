@@ -51,6 +51,7 @@ const reqToNeo4j = async (typeOfTransaction, driver, dbName, args, utils) => {
         return await tx.run(`${cypherCommand}`);
       });
     } else {
+      console.log(cypherCommand);
       response = await session.executeRead(async (tx) => {
         return await tx.run(`${cypherCommand}`);
       });

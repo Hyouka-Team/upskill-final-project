@@ -70,7 +70,7 @@ const NewUserType = new GraphQLObjectType({
 const TokenType = new GraphQLObjectType({
   name: "TokenRefresh",
   fields: () => ({
-    tokem: { type: GraphQLString },
+    token: { type: GraphQLString },
   }),
 });
 const RootQuery = new GraphQLObjectType({
