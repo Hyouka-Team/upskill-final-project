@@ -19,6 +19,13 @@ const {
 } = require("graphql");
 
 const _ = require("lodash");
+const {
+  getAllNotes,
+  addNote,
+  updateNote,
+  deleteNote,
+  getASingleNote,
+} = require("../controller/notesapi");
 
 /**
  * Fake Database
@@ -77,14 +84,19 @@ const RootQuery = new GraphQLObjectType({
   fields: () => ({
     note: {
       type: NotesType,
+      args: {
+        id: { type: GraphQLID },
+      },
+
       async resolve(parent, args, context) {
-        return dummyData[dummyData.length - 1];
+        return await getASingleNote(parent, args, context);
       },
     },
     notes: {
-      type: NotesType,
+      type: new GraphQLList(NotesType),
+
       async resolve(parent, args, context) {
-        return dummyData[dummyData.length - 1];
+        return await getAllNotes(parent, args, context);
       },
     },
   }),
@@ -101,17 +113,18 @@ const MutationQuery = new GraphQLObjectType({
         payload: { type: GraphQLString },
       },
       async resolve(parent, args, context) {
-        dummyData.push(args);
-        return dummyData[dummyData.length - 1];
+        return await addNote(parent, args, context);
       },
     },
     updateNote: {
       type: NotesType,
       args: {
         id: { type: GraphQLID },
+        title: { type: GraphQLString },
+        payload: { type: GraphQLString },
       },
       async resolve(parent, args, context) {
-        return dummyData[dummyData.length - 1];
+        return await updateNote(parent, args, context);
       },
     },
     deleteNote: {
@@ -120,7 +133,7 @@ const MutationQuery = new GraphQLObjectType({
         id: { type: GraphQLID },
       },
       async resolve(parent, args, context) {
-        return dummyData[dummyData.length - 1];
+        return await deleteNote(parent, args, context);
       },
     },
   }),

@@ -11,7 +11,7 @@ const isAuth = (req, res, next) => {
   const { userId } = verify(token, process.env.ACCESS_TOKEN_SECRET);
 
   if (!userId) {
-    return res.staus(200).json({ msg: "Wrong auth." });
+    return res.status(400).json({ msg: "Wrong auth." });
     throw new Error("");
   }
   req.userId = userId;

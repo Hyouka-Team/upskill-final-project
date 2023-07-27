@@ -11,10 +11,41 @@ const reqToNeo4j = async (typeOfTransaction, driver, dbName, args, utils) => {
   let cypherCommand = new String();
   const cypherFilter = new Object();
 
-  if (typeOfTransaction === "getAllUsers") {
+  if (typeOfTransaction === "notes") {
+    cypherCommand = `
+      MATCH (p:note)
+      RETURN p
+      `;
+  } else if (typeOfTransaction === "getAllUsers") {
     cypherCommand = `
       MATCH (p:user)
       RETURN p
+      `;
+  } else if (typeOfTransaction === "note") {
+    cypherCommand = `
+    MATCH (p:note)
+    WHERE ID(p) = ${args.id.split(":")[2]}
+    RETURN p
+    `;
+  } else if (typeOfTransaction === "addNote") {
+    cypherCommand = `
+      MATCH (u:user {email:"${args.email}"})
+      CREATE (u) -[:created_note]-> (p:note {payload: "${args.payload}", title: "${args.title}"})
+      RETURN p
+      `;
+  } else if (typeOfTransaction === "deleteNote") {
+    cypherCommand = `MATCH (p:note)
+    WHERE ID(p) = ${args.id.split(":")[2]}
+    DETACH DELETE p
+    RETURN p
+
+      `;
+  } else if (typeOfTransaction === "updateNote") {
+    cypherCommand = `
+    MATCH (p:note)
+    WHERE ID(p) = ${args.id.split(":")[2]}
+    SET p.title = "${args.title}", p.payload= "${args.payload}"
+    RETURN p
       `;
   } else if (typeOfTransaction === "getNodeByProperties") {
     cypherCommand = `
@@ -45,21 +76,26 @@ const reqToNeo4j = async (typeOfTransaction, driver, dbName, args, utils) => {
   try {
     if (
       typeOfTransaction === "createUser" ||
-      typeOfTransaction === "addToken"
+      typeOfTransaction === "addToken" ||
+      typeOfTransaction === "createNote" ||
+      typeOfTransaction === "addNote" ||
+      typeOfTransaction === "updateNote" ||
+      typeOfTransaction === "deleteNote"
     ) {
       response = await session.executeWrite(async (tx) => {
         return await tx.run(`${cypherCommand}`);
       });
+      console.log("the response", response.records);
     } else {
       console.log(cypherCommand);
       response = await session.executeRead(async (tx) => {
         return await tx.run(`${cypherCommand}`);
       });
     }
-    console.log("the response", response.records);
 
     return response;
   } catch (error) {
+    console.log(error);
     return error;
   } finally {
     session.close();
