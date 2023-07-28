@@ -130,23 +130,6 @@ const MutationQuery = new GraphQLObjectType({
       },
     },
   }),
-
-  //   fields: {
-  //     user: {
-  //       type: UserType,
-  //       args: { id: { type: GraphQLID } },
-  //       resolve(parent, args) {
-  //         return _.find(dummyData, { id: args.id });
-  //       },
-  //     },
-  //     users: {
-  //       type: new GraphQLList(),
-  //       args: { id: { type: GraphQLID } },
-  //       resolve(parent, args) {
-  //         return dummyData;
-  //       },
-  //     },
-  //   },
 });
 
 module.exports = new GraphQLSchema({

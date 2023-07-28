@@ -27,49 +27,6 @@ const {
   getASingleNote,
 } = require("../controller/notesapi");
 
-/**
- * Fake Database
- */
-const dummyData = [
-  {
-    id: 0,
-    email: "billgates@gmail.com",
-    name: "Bill Gates",
-    password: "",
-  },
-  {
-    id: 1,
-    email: "satyanadella@gmail.com",
-    name: "Satya Nadella",
-    password: "",
-  },
-];
-
-class GraphQLObjectTypeFields {
-  constructor(fields) {
-    this.fields = fields;
-  }
-  create() {
-    const fields = this.fields;
-    const fieldsObject = new Object();
-    for (let property in fields) {
-      fieldsObject[property] = {
-        type: fields.property,
-      };
-    }
-    return fieldsObject;
-  }
-  returnFields() {
-    const fields = this.fields;
-    return fields;
-  }
-}
-const NoteTypeFields = new GraphQLObjectTypeFields({
-  id: GraphQLID,
-  title: GraphQLString,
-  payload: GraphQLString,
-});
-const NoteTypeFieldsObject = NoteTypeFields.create();
 const NotesType = new GraphQLObjectType({
   name: "Notes",
   fields: () => ({

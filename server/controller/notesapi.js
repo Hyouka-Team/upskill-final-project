@@ -38,7 +38,7 @@ const Neo4jResIterator = (response, fieldsToGive) => {
  *  * See {@link getASingleNote}
  *  * See {@link addNote}
  *  * See {@link updateNote}
- *  * See {@link removeNote}
+ *  * See {@link deleteNote}
 
  */
 /**

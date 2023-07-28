@@ -1,10 +1,11 @@
 /**
+ * This is a function for faciliation of requesting to the Database.
  *
- * @param {string} typeOfTransaction
- * @param {*} driver
- * @param {string} dbName
- * @param {object} utils
- * @param {object} args
+ * @param {string} typeOfTransaction the function behhaves differently based on typeof transaction
+ * @param {*} driver the driver of neo4j for requesting to the database
+ * @param {string} dbName where transactions take place
+ * @param {object} utils does'nt do that much for now, reserved for futher development.
+ * @param {object} args any useful utility for perfoming the request for example, properties of the cypher command
  *
  */
 const reqToNeo4j = async (typeOfTransaction, driver, dbName, args, utils) => {
