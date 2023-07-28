@@ -1,0 +1,39 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "Backend of a note manager website.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "doc": "jsdoc -c jsdoc.json",
+    "test": "jest"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^29.6.2",
+    "jsdoc": "^4.0.2",
+    "nodemon": "^3.0.1"
+  },
+  "dependencies": {
+    "altair-express-middleware": "^5.0.28",
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.2",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "graphql": "^16.7.1",
+    "graphql-http": "^1.21.0",
+    "graphql-request": "^6.1.0",
+    "jsonwebtoken": "^9.0.1",
+    "lodash": "^4.17.21",
+    "neo4j-driver": "^5.10.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coveragePathIgnorePatterns": [
+      "/node_modules/"
+    ]
+  }
+}
