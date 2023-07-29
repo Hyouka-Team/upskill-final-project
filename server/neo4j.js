@@ -14,7 +14,7 @@ const startDB = async () => {
       console.log(serverInfo);
       return driver;
     } catch (err) {
-      console.log(`Connection error\n${err}\nCause: ${err.cause}`);
+      throw Error(`Connection error\n${err}\nCause: ${err.cause}`);
     }
   }
 };
