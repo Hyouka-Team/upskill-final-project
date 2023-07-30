@@ -54,6 +54,14 @@ const getAllUsers = async (parent, args, context) => {
     console.log(error);
     throw NetworkError;
   }
+  /**
+   *  * It gets a response of a Neo4j Transaction which looks like:
+ * .records (type : array) [  record{... _fields (type: usually an object)}]
+ * For each recors it looks in given fields and if it was present inside the object it will be added inside a object of each record
+ * and that function will be added to final response array.
+ * If the records was empty it should return an empty array
+
+   */
   response.records?.forEach((element) => {
     element.forEach((subElement) => {
       const { name, last_name: email, password } = subElement["properties"];
@@ -79,19 +87,21 @@ const getASingleUser = async (parent, args, context) => {
           `);
     });
     console.log("this is records=>", hi.records);
-
+    /** * It gets a response of a Neo4j Transaction which looks like:
+     * .records (type : array) [  record{... _fields (type: usually an object)}]
+     * For each recors it looks in given fields and if it was present inside the object it will be added inside a object of each record
+     * and that function will be added to final response array.
+     * If the records was empty it should return an empty array
+     */
     hi.records?.forEach((element) => {
       element.forEach((subElement) => {
         console.log("this is subelement", subElement);
         const { name, last_name: email, password } = subElement["properties"];
         res.push({ id: subElement.elementId, email, name, password });
       });
-      // console.log("this is a sole element=>", element);
-      // let recordNode = new Object();
     });
     console.log(res);
     return res[0];
-    // response = { name, email: last_name };
   } catch (error) {
     console.log(error);
   } finally {
@@ -99,7 +109,6 @@ const getASingleUser = async (parent, args, context) => {
   }
 };
 
-// here is under refactoring
 const createUser = async (parent, args, context) => {
   const { resp, req } = context;
   const { driver } = req;
@@ -132,15 +141,11 @@ const createUser = async (parent, args, context) => {
     const argumentKey = argumentsArray[index];
     // the value mutable because we want to hash the value of password
     let argumentValue = args[argumentKey];
-    // console.log("arg", argumentKey);
-    // console.log("arg", argumentValue);
-    /** (I) hash password */
-    // console.log("hi", argumentKey, argumentValue);
 
     if (argumentKey === "password") {
       console.log("pass error");
       checkForPassword(argumentValue, InvalidInputError);
-
+      /** (I) hash password */
       argumentValue = await hashPassword(argumentValue);
     }
     // to do: turn it to a function
@@ -174,14 +179,17 @@ const createUser = async (parent, args, context) => {
     console.log(err);
     throw InvalidInputError;
   }
+  /** * It gets a response of a Neo4j Transaction which looks like:
+   * .records (type : array) [  record{... _fields (type: usually an object)}]
+   * For each recors it looks in given fields and if it was present inside the object it will be added inside a object of each record
+   * and that function will be added to final response array.
+   * If the records was empty it should return an empty array
+   */
   response.records?.forEach((element) => {
     element.forEach((subElement) => {
-      // console.log("this is subelement", subElement);
       const { name, email, password } = subElement["properties"];
       res.push({ id: subElement.elementId, email, name, password });
     });
-    // console.log("this is a sole element=>", element);
-    // let recordNode = new Object();
   });
   console.log(res);
   return res[0];
@@ -224,7 +232,6 @@ const login = async (parent, args, context) => {
     let argumentValue = args[argumentKey];
     // console.log("arg", argumentKey);
     // console.log("arg", argumentValue);
-    /** (I) hash password */
     // console.log("hi", argumentKey, argumentValue);
 
     if (argumentKey === "password") {
@@ -238,14 +245,8 @@ const login = async (parent, args, context) => {
     /** (III) add properties to createUserProperties for cypher query*/
     keyAndValueString = argumentKey + " : " + argumentValue;
     createUserProperties = createUserProperties + keyAndValueString;
-    /** it it is not the last index then add comma */
-    // if (index !== argumentsArray.length - 1) {
-    //   createUserProperties += ",";
-    // }
   }
-  // console.log(`{${createUserProperties}}`);
   let response;
-  /** creating a session for requesting to the database */
   response = await reqToNeo4j(
     "login",
     driver,
@@ -264,30 +265,13 @@ const login = async (parent, args, context) => {
   });
 
   console.log("This is res", res);
-  // console.log("res");
-  /**
-     * wont work here, sample structure of record func:
-     *   Record {
-    keys: [ 'email', 'password' ],
-    length: 2,
-    _fields: [
-      'danial@mail.com',
-      '$2a$10$1FqYtGRrSzNzacE0tC4ZBeE4eX4Vg5V4jksik8i58oXKbsWaV9wIW'
-    ],
-    _fieldLookup: { email: 0, password: 1 }
-  }
-     */
-  // 1. Find user in array. If not exist send error
-  // console.log("args", args, response?.records[0]?._fields[1]);
-  // console.log("it is response", {
-  //   email: response.query,
-  // });
-  /*
-  order-matters
-  */
+
   console.log("that's our res");
   let valid = null;
   try {
+    /*
+  order-matters, hashed password should be the secon argument
+  */
     valid = await compare(args.password, res[0].password);
   } catch (error) {
     /**
@@ -297,7 +281,7 @@ const login = async (parent, args, context) => {
      */
     console.log(error);
   }
-
+  /** If it catches an errorthe valid would be null (falsy) and we want to throw an error in that case  */
   if (!valid) {
     console.log("!pass");
 
@@ -353,7 +337,7 @@ const tokenRefresh = async (parent, args, context) => {
     /**
      * 
      *     return res.json({ accesstoken: "" });
-
+    the xode above is a bad practice and it will throw this error.
 Error [ERR_HTTP_HEADERS_SENT]: Cannot render headers after they are sent to the client
 
 

@@ -1,7 +1,12 @@
 var neo4j = require("neo4j-driver");
+/**
+ * It configures and reurns driver object to interact with a Neo4j instance.
+ * @returns
+ */
 const startDB = async () => {
   {
-    // URI examples: 'neo4j://localhost', 'neo4j+s://xxx.databases.neo4j.io'
+    // URI examples: 'bolt://127.0.0.1', 'neo4j+s://xxx.databases.neo4j.io'
+    // enviroment variables for configuration of the driver
     const URI = process.env.URI;
     const USER = process.env.USER;
     const PASSWORD = process.env.PASSWORD;
