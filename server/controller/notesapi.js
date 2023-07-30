@@ -1,5 +1,15 @@
 const InvalidInputError = require("../errors/InvalidInputError");
 
+/**
+ * It gets a response of a Neo4j Transaction which looks like:
+ * .records (type : array) [  record{... _fields (type: usually an object)}]
+ * For each recors it looks in given fields and if it was present inside the object it will be added inside a object of each record
+ * and that function will be added to final response array.
+ * If the records was empty it should return an empty array
+ * @param {*} response
+ * @param {array} fieldsToGive
+ * @returns {array}
+ */
 const Neo4jResIterator = (response, fieldsToGive) => {
   try {
     const finalResponse = [];
@@ -15,21 +25,11 @@ const Neo4jResIterator = (response, fieldsToGive) => {
           }
         });
       }
-      // console.log(finalResponse);
-      // console.log(typeof _fields);
-      // console.log(_fields);
-      // console.log("352", subElement);
-      // finalResponse[i] = {};
-
-      // console.log(subElement["properties"][element]);
-      // });
     });
-    // console.log("vaaaaaaaay", typeof finalResponse, finalResponse);
     return finalResponse;
   } catch (error) {
     console.log(error);
   }
-  // console.log("thats records", response.records);
 };
 
 /**
@@ -39,6 +39,7 @@ const Neo4jResIterator = (response, fieldsToGive) => {
  *  * See {@link addNote}
  *  * See {@link updateNote}
  *  * See {@link deleteNote}
+ *  * See {@link notesOfAUser}
 
  */
 /**
@@ -51,15 +52,12 @@ const { response } = require("express");
 
 // to do: add login controller and query
 
-// the code is verbose and the query fields are not self explanatory i.e some fields
-// are available that it is not neccessary. e.g: in login  query we can query secuirty question
-// though it should be unavailable. IDK how to fix it for now maybe graphql structure is not suitble for
-// such purposes.
 const getAllNotes = async (parent, args, context) => {
   const { res, req } = context;
   const { driver } = req;
   let response = null;
   try {
+    //req to neo4j
     response = await reqToNeo4j(
       "notes",
       driver,
@@ -71,15 +69,12 @@ const getAllNotes = async (parent, args, context) => {
     console.log(error);
     throw NetworkError;
   }
-
   const finalResponse = Neo4jResIterator(response, [
     "title",
     "payload",
     "elementId",
   ]);
-  console.log("hi", finalResponse);
   if (finalResponse == "") {
-    console.log("baba");
     return undefined;
   } else {
     return Neo4jResIterator(response, ["title", "payload", "elementId"]);
@@ -91,6 +86,7 @@ const getASingleNote = async (parent, args, context) => {
   const { driver } = req;
   let response = null;
   try {
+    //req to neo4j
     response = await reqToNeo4j("note", driver, process.env.DATABASE, args, {});
   } catch (error) {
     console.log(error);
@@ -102,9 +98,7 @@ const getASingleNote = async (parent, args, context) => {
     "payload",
     "elementId",
   ]);
-  console.log("hi", finalResponse);
   if (finalResponse == "") {
-    console.log("baba");
     return undefined;
   } else {
     return Neo4jResIterator(response, ["title", "payload", "elementId"])[0];
@@ -116,6 +110,7 @@ const addNote = async (parent, args, context) => {
   const { driver } = req;
   let response = null;
   try {
+    //req to neo4j
     response = await reqToNeo4j(
       "addNote",
       driver,
@@ -131,30 +126,91 @@ const addNote = async (parent, args, context) => {
     console.log(error);
     throw error;
   }
-  //   console.log(response);
   let finalResponse = Neo4jResIterator(response, [
     "title",
     "payload",
     "elementId",
   ]);
 
-  // console.log("hi", finalResponse);
-  // console.log(response);
-  console.log(finalResponse === []);
   if (finalResponse.length === 0) {
+    // the query didn't result anything and its a [] so we can't pick its first index
     return undefined;
   } else {
-    console.log("fh");
-
+    // the response is an array, although our query type is not a list so we should pick the first index
     return finalResponse[0];
   }
 };
+const notesOfAUser = async (parent, args, context) => {
+  const { res, req } = context;
+  const { driver } = req;
+  let response = null;
+  try {
+    //req to neo4j
+    response = await reqToNeo4j(
+      "matchUserNotes",
+      driver,
+      process.env.DATABASE,
+      {
+        id: parent.id,
+      },
+      {}
+    );
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+  let finalResponse = Neo4jResIterator(response, [
+    "title",
+    "payload",
+    "elementId",
+  ]);
 
+  if (finalResponse.length === 0) {
+    // the query didn't result anything and its a [] so we can't pick its first index
+    return undefined;
+  } else {
+    return finalResponse;
+  }
+};
+const noteAuthor = async (parent, args, context) => {
+  const { res, req } = context;
+  const { driver } = req;
+  let response = null;
+  try {
+    //req to neo4j
+    response = await reqToNeo4j(
+      "noteAuthor",
+      driver,
+      process.env.DATABASE,
+      {
+        id: parent.id,
+      },
+      {}
+    );
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+  let finalResponse = Neo4jResIterator(response, [
+    "email",
+    "id",
+    "name",
+    "elementId",
+  ]);
+
+  if (finalResponse.length === 0) {
+    // the query didn't result anything and its a [] so we can't pick its first index
+    return undefined;
+  } else {
+    return finalResponse[0];
+  }
+};
 const updateNote = async (parent, args, context) => {
   const { res, req } = context;
   const { driver } = req;
   let response = null;
   try {
+    //req to neo4j
     response = await reqToNeo4j(
       "updateNote",
       driver,
@@ -170,21 +226,17 @@ const updateNote = async (parent, args, context) => {
     console.log(error);
     throw error;
   }
-  //   console.log(response);
   let finalResponse = Neo4jResIterator(response, [
     "title",
     "payload",
     "elementId",
   ]);
 
-  // console.log("hi", finalResponse);
-  // console.log(response);
-  console.log(response);
   if (finalResponse.length === 0) {
+    // the query didn't result anything and its a [] so we can't pick its first index
     return undefined;
   } else {
-    console.log("fh");
-
+    // the response is an array, although our query type is not a list so we should pick the first index
     return finalResponse[0];
   }
 };
@@ -193,6 +245,7 @@ const deleteNote = async (parent, args, context) => {
   const { driver } = req;
   let response = null;
   try {
+    //req to neo4j
     response = await reqToNeo4j(
       "deleteNote",
       driver,
@@ -206,15 +259,11 @@ const deleteNote = async (parent, args, context) => {
     console.log(error);
     throw error;
   }
-  //   console.log(response);
   let finalResponse = Neo4jResIterator(response, ["elementId"]);
-
-  // console.log("hi", finalResponse);
-  // console.log(response);
-  console.log(response);
   if (finalResponse.length === 0) {
     return undefined;
   } else {
+    // the response is an array, although our query type is not a list so we should pick the first index
     return finalResponse[0];
   }
 };
@@ -224,4 +273,6 @@ module.exports = {
   addNote,
   updateNote,
   deleteNote,
+  notesOfAUser,
+  noteAuthor,
 };
