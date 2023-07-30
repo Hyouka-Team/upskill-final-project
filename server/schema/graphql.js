@@ -48,19 +48,6 @@ const TokenType = new GraphQLObjectType({
 const RootQuery = new GraphQLObjectType({
   name: "RootQueryType",
   fields: () => ({
-    user: {
-      type: UserType,
-      args: { id: { type: GraphQLID } },
-      async resolve(parent, args, context) {
-        return getASingleUser(parent, args, context);
-      },
-    },
-    users: {
-      type: new GraphQLList(UserType),
-      async resolve(parent, args, context) {
-        return getAllUsers(parent, args, context);
-      },
-    },
     login: {
       type: UserType,
       args: {

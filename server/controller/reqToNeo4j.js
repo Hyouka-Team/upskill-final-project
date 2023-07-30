@@ -93,6 +93,18 @@ const reqToNeo4j = async (typeOfTransaction, driver, dbName, args, utils) => {
     /** Its function is almost the same as getNodeByProperties type of transaction but it only matches nodes with :user id */
     cypherCommand = `MATCH (p:user {${args}}) 
     RETURN p`;
+  } else if (typeOfTransaction === "matchUserNotes") {
+    /** It sets refresh token for a user with args.id */
+    cypherCommand = `Match (p:user) -[:created_note]-> (n:note)
+    WHERE id(p) = ${args.id.split(":")[2]}
+    RETURN n`;
+    console.log(cypherCommand);
+  } else if (typeOfTransaction === "noteAuthor") {
+    /** It sets refresh token for a user with args.id */
+    cypherCommand = `Match (p:user) -[:created_note]-> (n:note)
+    WHERE id(n) = ${args.id.split(":")[2]}
+    RETURN p`;
+    console.log(cypherCommand);
   }
   let session = driver.session({ database: process.env.DATABASE });
   let response = undefined;

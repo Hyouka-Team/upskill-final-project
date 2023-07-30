@@ -39,6 +39,7 @@ const Neo4jResIterator = (response, fieldsToGive) => {
  *  * See {@link addNote}
  *  * See {@link updateNote}
  *  * See {@link deleteNote}
+ *  * See {@link notesOfAUser}
 
  */
 /**
@@ -125,7 +126,6 @@ const addNote = async (parent, args, context) => {
     console.log(error);
     throw error;
   }
-  //   console.log(response);
   let finalResponse = Neo4jResIterator(response, [
     "title",
     "payload",
@@ -140,7 +140,71 @@ const addNote = async (parent, args, context) => {
     return finalResponse[0];
   }
 };
+const notesOfAUser = async (parent, args, context) => {
+  const { res, req } = context;
+  const { driver } = req;
+  let response = null;
+  try {
+    //req to neo4j
+    response = await reqToNeo4j(
+      "matchUserNotes",
+      driver,
+      process.env.DATABASE,
+      {
+        id: parent.id,
+      },
+      {}
+    );
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+  let finalResponse = Neo4jResIterator(response, [
+    "title",
+    "payload",
+    "elementId",
+  ]);
 
+  if (finalResponse.length === 0) {
+    // the query didn't result anything and its a [] so we can't pick its first index
+    return undefined;
+  } else {
+    return finalResponse;
+  }
+};
+const noteAuthor = async (parent, args, context) => {
+  const { res, req } = context;
+  const { driver } = req;
+  let response = null;
+  try {
+    //req to neo4j
+    response = await reqToNeo4j(
+      "noteAuthor",
+      driver,
+      process.env.DATABASE,
+      {
+        id: parent.id,
+      },
+      {}
+    );
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+  let finalResponse = Neo4jResIterator(response, [
+    "email",
+    "id",
+    "name",
+    "elementId",
+  ]);
+
+  if (finalResponse.length === 0) {
+    // the query didn't result anything and its a [] so we can't pick its first index
+    return undefined;
+  } else {
+    return finalResponse[0];
+  }
+};
 const updateNote = async (parent, args, context) => {
   const { res, req } = context;
   const { driver } = req;
@@ -162,7 +226,6 @@ const updateNote = async (parent, args, context) => {
     console.log(error);
     throw error;
   }
-  //   console.log(response);
   let finalResponse = Neo4jResIterator(response, [
     "title",
     "payload",
@@ -197,8 +260,6 @@ const deleteNote = async (parent, args, context) => {
     throw error;
   }
   let finalResponse = Neo4jResIterator(response, ["elementId"]);
-
-  console.log(response);
   if (finalResponse.length === 0) {
     return undefined;
   } else {
@@ -212,4 +273,6 @@ module.exports = {
   addNote,
   updateNote,
   deleteNote,
+  notesOfAUser,
+  noteAuthor,
 };

@@ -25,7 +25,24 @@ const {
   updateNote,
   deleteNote,
   getASingleNote,
+  notesOfAUser,
+  noteAuthor,
 } = require("../controller/notesapi");
+
+const UserType = new GraphQLObjectType({
+  name: "User",
+  fields: () => ({
+    id: { type: GraphQLID },
+    email: { type: GraphQLString },
+    name: { type: GraphQLString },
+    notes: {
+      type: new GraphQLList(NotesType),
+      async resolve(parent, args, context) {
+        return notesOfAUser(parent, args, context);
+      },
+    },
+  }),
+});
 
 const NotesType = new GraphQLObjectType({
   name: "Notes",
@@ -33,6 +50,12 @@ const NotesType = new GraphQLObjectType({
     id: { type: GraphQLID },
     title: { type: GraphQLString },
     payload: { type: GraphQLString },
+    user: {
+      type: UserType,
+      async resolve(parent, args, context) {
+        return noteAuthor(parent, args, context);
+      },
+    },
   }),
 });
 
@@ -44,14 +67,12 @@ const RootQuery = new GraphQLObjectType({
       args: {
         id: { type: GraphQLID },
       },
-
       async resolve(parent, args, context) {
         return await getASingleNote(parent, args, context);
       },
     },
     notes: {
       type: new GraphQLList(NotesType),
-
       async resolve(parent, args, context) {
         return await getAllNotes(parent, args, context);
       },

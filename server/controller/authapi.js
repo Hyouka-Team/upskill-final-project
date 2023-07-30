@@ -37,7 +37,6 @@ const { response } = require("express");
 // though it should be unavailable. IDK how to fix it for now maybe graphql structure is not suitble for
 // such purposes.
 const getAllUsers = async (parent, args, context) => {
-  console.log(Object.keys(context));
   const { res, req } = context;
   const { driver } = req;
   let response = null;
@@ -74,19 +73,18 @@ const getAllUsers = async (parent, args, context) => {
 const getASingleUser = async (parent, args, context) => {
   const { res, req } = context;
   const { driver } = req;
-  const id = args?.id;
+  const id = parent?.id;
+  console.log("look,id", id);
   let session = driver.session({ database: process.env.DATABASE });
   try {
     let res = [];
-    console.log();
     const hi = await session.executeRead(async (tx) => {
       return await tx.run(`
           MATCH (p:user)
-          WHERE ID(p) = ${args.id.split(":")[2]}
+          WHERE ID(p) = ${parent.id.split(":")[2]}
           RETURN p
           `);
     });
-    console.log("this is records=>", hi.records);
     /** * It gets a response of a Neo4j Transaction which looks like:
      * .records (type : array) [  record{... _fields (type: usually an object)}]
      * For each recors it looks in given fields and if it was present inside the object it will be added inside a object of each record
@@ -95,12 +93,10 @@ const getASingleUser = async (parent, args, context) => {
      */
     hi.records?.forEach((element) => {
       element.forEach((subElement) => {
-        console.log("this is subelement", subElement);
         const { name, last_name: email, password } = subElement["properties"];
         res.push({ id: subElement.elementId, email, name, password });
       });
     });
-    console.log(res);
     return res[0];
   } catch (error) {
     console.log(error);
@@ -123,8 +119,6 @@ const createUser = async (parent, args, context) => {
   const argumentsArray = Object.keys(args);
   let createUserProperties = "";
   for (let index = 0; index < argumentsArray.length; index++) {
-    console.log(`{${createUserProperties}}`);
-
     /**
      * Checking for:
 
@@ -164,7 +158,6 @@ const createUser = async (parent, args, context) => {
       createUserProperties += ",";
     }
   }
-  console.log("final", createUserProperties);
   let response = null;
   /** creating a session for requesting to the database */
   try {
@@ -191,7 +184,6 @@ const createUser = async (parent, args, context) => {
       res.push({ id: subElement.elementId, email, name, password });
     });
   });
-  console.log(res);
   return res[0];
 };
 
@@ -230,9 +222,6 @@ const login = async (parent, args, context) => {
     const argumentKey = argumentsArray[index];
     // the value mutable because we want to hash the value of password
     let argumentValue = args[argumentKey];
-    // console.log("arg", argumentKey);
-    // console.log("arg", argumentValue);
-    // console.log("hi", argumentKey, argumentValue);
 
     if (argumentKey === "password") {
       continue;
@@ -254,19 +243,13 @@ const login = async (parent, args, context) => {
     createUserProperties,
     {}
   );
-  console.log("this is records=>", response.records);
-
   response.records?.forEach((element) => {
     element.forEach((subElement) => {
-      console.log("this is subelement", subElement);
       const { name, email, password } = subElement["properties"];
       res.push({ id: subElement.elementId, email, password });
     });
   });
 
-  console.log("This is res", res);
-
-  console.log("that's our res");
   let valid = null;
   try {
     /*
@@ -294,7 +277,6 @@ const login = async (parent, args, context) => {
   const accesstoken = createAccessToken(args.email);
 
   const refreshtoken = createRefreshToken(args.email);
-  console.log(accesstoken, refreshtoken);
   /**
    * adding refresh token to Database
    */
@@ -308,27 +290,20 @@ const login = async (parent, args, context) => {
     },
     {}
   );
-  console.log("refresh token", addRefreshTokenToDatabase);
   resp.cookie("refreshtoken", refreshtoken, {
     httpOnly: true,
     path: "graphql",
   });
 
   if (res[0] == undefined) {
-    console.log("that's our res", res);
-
     throw new InvalidInputError();
   }
-
-  console.log("hi", res[0]);
   return { ...res[0], password: accesstoken };
 };
 
 const tokenRefresh = async (parent, args, context) => {
   const { res: resp, req } = context;
   const { driver } = req;
-  console.log("ITs cookie", req.cookies);
-
   const token = req.cookies.refreshtoken;
   // If we don't have a token in our request
   if (!token) {
@@ -342,7 +317,6 @@ Error [ERR_HTTP_HEADERS_SENT]: Cannot render headers after they are sent to the 
 
 
      */
-    console.log(token);
     return { token: "" };
   }
   // // We have a token, let's verify it!
@@ -371,26 +345,18 @@ Error [ERR_HTTP_HEADERS_SENT]: Cannot render headers after they are sent to the 
     user.records[0]._fields[0].elementId,
     user.records[0]._fields[0].email,
   ];
-  console.log(
-    "this is user",
-    user.records[0]._fields[0].properties.refreshToken,
-    user.records[0]._fields[0].elementId
-  );
+  // console.log(
+  //   "this is user",
+  //   user.records[0]._fields[0].properties.refreshToken,
+  //   user.records[0]._fields[0].elementId
+  // );
   // user exist, check if refreshtoken exist on user
-  console.log(
-    "babaharmanem",
-    prevRefreshToken !== token,
-    prevRefreshToken,
-    token
-  );
   if (prevRefreshToken !== token) return { token: "" };
-  console.log("payload", payload.userId);
   // // // token exist, create new Refresh- and accesstoken
   const accesstoken = createAccessToken(payload.userId);
   const refreshtoken = createRefreshToken(payload.userId);
   // // // // // update refreshtoken on user in db
   // // // // Could have different versions instead!
-  console.log(userId);
   const addRefreshTokenToDatabase = await reqToNeo4j(
     "addToken",
     driver,
@@ -400,13 +366,6 @@ Error [ERR_HTTP_HEADERS_SENT]: Cannot render headers after they are sent to the 
       refreshToken: refreshtoken,
     },
     {}
-  );
-  console.log(
-    "salam",
-    addRefreshTokenToDatabase.records[0]?._fields[0]?.properties.email,
-    userEmail,
-    addRefreshTokenToDatabase.records[0]?._fields[0]?.properties?.email ==
-      payload.userId
   );
   if (
     addRefreshTokenToDatabase.records[0]?._fields[0]?.properties?.email ==
