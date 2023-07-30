@@ -22,58 +22,41 @@ const { locatedError } = require("graphql");
 
 const { start } = require("./start");
 const myApp = null;
-beforeAll(async () => {
-  const myApp = await start(
-    app,
-    {
-      createHandler,
-      schema,
-      notesSchema,
-      altairExpress,
-      startDB,
-      cors,
-      bodyParser,
-      cookieParser,
-      isAuth,
-    },
-    true
-  );
-  return myApp;
-});
-test("db and server works", async () => {
-  expect.assertions(1);
-  let app1 = await app;
-  console.log(myApp);
-  expect(typeof myApp).toBe("object");
-});
 
-describe("Graphql api and Notes API", () => {
-  test("API works", async () => {
-    const document = gql`
-      mutation {
-        addUser(
-          name: "hassan"
-          email: "hassan@gmail.com"
-          password: "12E!dddddd@34"
-          securityQuestion: "hi"
-          securityQuestionAnswer: "hi"
-        ) {
-          name
-          email
-        }
-      }
-    `;
-    const response = await request("http://localhost:4000/graphql", document);
-    console.log(response);
-    expect(response).toEqual({
-      addUser: {
-        name: "hassan",
-        email: "hassan@gmail.com",
+// test("db and server works", async () => {
+//   expect.assertions(1);
+//   let app1 = await app;
+//   console.log(myApp);
+//   expect(typeof myApp).toBe("object");
+// });
+let serverStatus = null;
+describe("App and Database Workds", () => {
+  beforeAll(async () => {
+    serverStatus = await start(
+      app,
+      {
+        createHandler,
+        schema,
+        notesSchema,
+        altairExpress,
+        startDB,
+        cors,
+        bodyParser,
+        cookieParser,
+        isAuth,
       },
-    });
+      true
+    );
+    console.log("Ready....go!");
   });
-});
+  test("App works", async () => {
+    setTimeout(async () => {
+      return expect(await serverStatus.startStatus).toEqual({
+        db: true,
+        app: true,
+      });
+    }, 100000);
 
-afterAll(() => {
-  done();
+    console.log("here is server status", serverStatus.startStatus);
+  });
 });

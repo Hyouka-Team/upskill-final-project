@@ -34,6 +34,11 @@ const giveAppAndServer = {
   server: new Object(),
 };
 const start = async (app, utils, startType) => {
+  // if the app or database works the function returns starttype in testing enviroment
+  const startStatus = {
+    db: false,
+    app: false,
+  };
   const {
     createHandler,
     schema,
@@ -48,6 +53,13 @@ const start = async (app, utils, startType) => {
 
   try {
     const driver = await startDB();
+    try {
+      const serverInfo = await driver.getServerInfo();
+      startStatus.db = true;
+    } catch (error) {
+      startStatus.db = false;
+    }
+    // console.log(schema);
     /**
      * Neccessary middlewares
      */
@@ -93,12 +105,15 @@ const start = async (app, utils, startType) => {
       initialQuery: `{ getData { id name surname } }`,
     })
   );
-  app.listen(process.env.PORT || 4000, () =>
-    console.log(`Server listening on port ${process.env.PORT || 4000}!`)
-  );
+
+  app.listen(process.env.PORT || 4000, () => {
+    console.log(`Server listening on port ${process.env.PORT || 4000}!`);
+    startStatus.app = true;
+    console.log(startStatus);
+  });
   if (startType === true) {
     return {
-      app,
+      startStatus,
     };
   }
 };
