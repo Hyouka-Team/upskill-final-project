@@ -1,18 +1,3 @@
-/**
- * This function throws an error if the e is falsy
- * @param {*} e 
- * @param {Class} m 
- * @returns 
- * example usecase in the controller:
- *       (() => {
-        try {
-          _throw(emailPatternCheck(argumentValue), InvalidInputError);
-        } catch (error) {
-          throw error;
-        }
-      })();
- */
-
 const isEmailFormatValid = (string) => {
   const regex =
     /^([\w-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([\w-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/;
@@ -43,12 +28,20 @@ const isPasswordFormatValid = (string) => {
   }
 };
 
-// console.log(isPassStrong("sd!1"));
-// console.log(isPassStrong("111!111111"));
-// console.log(isPassStrong("111@11df"));
-// console.log(isPassStrong("df1234!56"));
-// console.log(isPassStrong("dfddddddddd"));
-
+/**
+ * This function throws an error if the e is falsy
+ * @param {*} e 
+ * @param {Class} m 
+ * @returns 
+ * example usecase in the controller:
+ *       (() => {
+        try {
+          _throw(emailPatternCheck(argumentValue), InvalidInputError);
+        } catch (error) {
+          throw error;
+        }
+      })();
+ */
 function _throw(e, m) {
   console.log("this is the condition", e);
   if (e) {

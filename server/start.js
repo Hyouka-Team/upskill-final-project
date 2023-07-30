@@ -9,7 +9,7 @@
     cookieParser,
     isAuth,
 
- * A student
+ * Utility Object as dependencies for a full-fledged express server
  * @typedef {Object} Utils
  * @property {*} createHandler - Create a GraphQL request handler for  the express framework
  * @property {*} schema - The Schema of /graphql endpoint for supplying the root types of each type of operation,
@@ -27,13 +27,18 @@
 /**
  * Invoke this function and the server will start
  * @param {Object} app the express app needed as an argument for running the server app
- * @param {} utils the middlewares or dependencies needed for running the server
+ * @param {Utils} utils the middlewares or dependencies needed for running the server
  */
 const giveAppAndServer = {
   app: new Object(),
   server: new Object(),
 };
 const start = async (app, utils, startType) => {
+  // if the app or database works the function returns starttype in testing enviroment
+  const startStatus = {
+    db: false,
+    app: false,
+  };
   const {
     createHandler,
     schema,
@@ -46,12 +51,14 @@ const start = async (app, utils, startType) => {
     isAuth,
   } = utils;
 
-  // console.log("shema", schema);
-  /**
-   * Mount your Altair Grap hQL client
-   * */
   try {
     const driver = await startDB();
+    try {
+      const serverInfo = await driver.getServerInfo();
+      startStatus.db = true;
+    } catch (error) {
+      startStatus.db = false;
+    }
     // console.log(schema);
     /**
      * Neccessary middlewares
@@ -62,6 +69,7 @@ const start = async (app, utils, startType) => {
     };
     app.use(cors());
     app.use(cookieParser());
+    /**  Graphql API */
     app.use("/graphql", middleware, (req, res) => {
       return createHandler({
         schema,
@@ -78,7 +86,9 @@ const start = async (app, utils, startType) => {
     console.log(error);
     return null;
   }
-
+  /**
+   * Mount your Altair GraphQL client
+   * */
   app.use(
     "/altair",
     altairExpress({
@@ -95,12 +105,15 @@ const start = async (app, utils, startType) => {
       initialQuery: `{ getData { id name surname } }`,
     })
   );
-  app.listen(process.env.PORT || 4000, () =>
-    console.log(`Server listening on port ${process.env.PORT || 4000}!`)
-  );
+
+  app.listen(process.env.PORT || 4000, () => {
+    console.log(`Server listening on port ${process.env.PORT || 4000}!`);
+    startStatus.app = true;
+    console.log(startStatus);
+  });
   if (startType === true) {
     return {
-      app,
+      startStatus,
     };
   }
 };
