@@ -11,6 +11,7 @@ const InvalidInputError = require("../errors/InvalidInputError");
  *  * See {@link createUser}
  *  * See {@link login}
  *  * See {@link tokenRefresh}
+ *  * See {@link logOut}
 
  */
 /**
@@ -380,10 +381,21 @@ Error [ERR_HTTP_HEADERS_SENT]: Cannot render headers after they are sent to the 
     return { token: accesstoken };
   }
 };
+
+const logOut = async (parent, args, context) => {
+  const { res, req } = context;
+  const { driver } = req;
+  res.clearCookie("refreshtoken", { path: "graphql" });
+  // Logic here for also remove refreshtoken from db
+  // todo
+  return { success: true };
+};
+
 module.exports = {
   getAllUsers,
   getASingleUser,
   createUser,
   login,
   tokenRefresh,
+  logOut,
 };

@@ -6,9 +6,10 @@ const {
   login,
   createUser,
   tokenRefresh,
+  logOut,
 } = require("../controller/authapi");
 
-const { GraphQLSchema } = require("graphql");
+const { GraphQLSchema, GraphQLBoolean } = require("graphql");
 const {
   GraphQLList,
   GraphQLInt,
@@ -62,6 +63,17 @@ const RootQuery = new GraphQLObjectType({
       type: TokenType,
       async resolve(parent, args, context) {
         return tokenRefresh(parent, args, context);
+      },
+    },
+    logOut: {
+      type: new GraphQLObjectType({
+        name: "Success",
+        fields: () => ({
+          success: { type: GraphQLBoolean },
+        }),
+      }),
+      async resolve(parent, args, context) {
+        return logOut(parent, args, context);
       },
     },
   }),
